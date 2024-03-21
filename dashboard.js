@@ -321,6 +321,22 @@ const Dashboard = () => {
   const dateYesterday = new Date(currentDate);
   dateYesterday.setDate(currentDate.getDate() - 1);
 
+  function getSuffix(day) {
+    if (day >= 11 && day <= 13) {
+      return "th";
+    }
+    switch (day % 10) {
+      case 1:
+        return "st";
+      case 2:
+        return "nd";
+      case 3:
+        return "rd";
+      default:
+        return "th";
+    }
+  }
+
   const [currentWeekMonth, setCurrentWeekMonth] = useState(new Date());
   const [weekData, setWeekData] = useState([]);
   const totalAmount = {};
@@ -354,10 +370,11 @@ const Dashboard = () => {
         .toString()
         .padStart(2, "0")}`;
 
-      const dayName = dayStartDate.toLocaleString("en-UK", {
-        weekday: "long",
-        day: "numeric",
-      });
+      const dayOfMonth = dayStartDate.getDate();
+      const suffix = getSuffix(dayOfMonth); // Function to get the suffix (st, nd, rd, or th)
+      const weekday = dayStartDate.toLocaleString("en-UK", { weekday: "long" });
+
+      const dayName = `${weekday}, ${dayOfMonth}${suffix}`;
 
       const weekSales = sales.filter((sale) => {
         const saleDate = new Date(sale.datesold);
@@ -1213,12 +1230,12 @@ const Dashboard = () => {
           <u>Sales of the Week</u>
         </h2>
         <br />
-        <div style={{ maxWidth: "850px", margin: "auto" }}>
+        <div style={{ maxWidth: "900px", margin: "auto" }}>
           <BarChart
-            width={800}
-            height={485}
+            width={1000}
+            height={500}
             data={weekData}
-            margin={{ left: 40, right: 10 }}
+            margin={{ left: 40, right: 20 }}
           >
             <CartesianGrid />
             <XAxis dataKey="name" />
