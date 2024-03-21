@@ -337,55 +337,55 @@ const Dashboard = () => {
     newDate.setMilliseconds(0);
     setCurrentWeekMonth(newDate);
 
-    let endDate = new Date(); // Today
-    let startDate = new Date(endDate); // Start from today
-    startDate.setDate(startDate.getDate());
+    let startDate = new Date(); // Start from today
+    startDate.setHours(0, 0, 0, 0);
 
     for (let i = 1; i <= 7; i++) {
       const dayStartDate = new Date(startDate);
-      const dayEndDate = new Date(dayStartDate);
+      const dayEndDate = new Date(startDate);
       dayEndDate.setHours(23, 59, 59, 999);
 
-      const weekSales = sales.filter((sale) => {
-        const saleDate = new Date(sale.datesold);
-        return saleDate >= dayStartDate && saleDate <= dayEndDate;
-      });
-      console.log("day", dayStartDate);
-      console.log("WeekSales", weekSales);
-      const weekExpense = expenses.filter((expense) => {
-        const expenseDate = new Date(expense.date);
-        return expenseDate >= dayStartDate && expenseDate <= dayEndDate;
-      });
+      const formattedDate = `${dayStartDate.getFullYear()}-${(
+        dayStartDate.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}-${dayStartDate
+        .getDate()
+        .toString()
+        .padStart(2, "0")}`;
 
       const dayName = dayStartDate.toLocaleString("en-UK", {
         weekday: "long",
         day: "numeric",
       });
 
+      const weekSales = sales.filter((sale) => {
+        const saleDate = new Date(sale.datesold);
+        return saleDate >= dayStartDate && saleDate <= dayEndDate;
+      });
+
+      const weekExpense = expenses.filter((expense) => {
+        const expenseDate = new Date(expense.date);
+        return expenseDate >= dayStartDate && expenseDate <= dayEndDate;
+      });
+
       const weekTotalAmount = weekSales.reduce(
         (acc, sale) => acc + sale.total,
         0
       );
-
       const weekTotalCommissions = weekSales.reduce(
         (acc, sale) => acc + sale.commission,
         0
       );
-
       const weekTotalExpense = weekExpense.reduce(
         (acc, expense) => acc + expense.cost + weekTotalCommissions,
         0
       );
-
       const netProfit = weekTotalAmount - weekTotalExpense;
       const weekTotalProfit = netProfit > 0 ? netProfit : 0;
 
-      totalAmount[`${dayName}`] = weekTotalAmount;
-      totalProfits[`${dayName}`] = weekTotalProfit;
-      totalExpense[`${dayName}`] = weekTotalExpense;
-
-      weeksData[`${dayName}`] = {
-        day: `${dayName}`,
+      weeksData[dayName] = {
+        day: dayName,
         startDate: dayStartDate.toISOString().slice(0, 10),
         endDate: dayEndDate.toISOString().slice(0, 10),
         sales: weekSales.length,
@@ -395,18 +395,16 @@ const Dashboard = () => {
       };
 
       startDate.setDate(startDate.getDate() - 1);
-      console.log(weeksData);
     }
 
-    updatedWeekData = [];
-    for (const dayName in totalAmount) {
-      updatedWeekData.push({
-        name: dayName,
-        Revenue: totalAmount[dayName],
-        Profit: totalProfits[dayName],
-        Expenses: totalExpense[dayName],
-      });
-    }
+    // Prepare data for visualization
+    const updatedWeekData = Object.keys(weeksData).map((dayName) => ({
+      name: dayName,
+      Revenue: weeksData[dayName].totalAmount,
+      Profit: weeksData[dayName].totalProfit,
+      Expenses: weeksData[dayName].totalExpense,
+    }));
+
     setWeekData(updatedWeekData);
   };
 
