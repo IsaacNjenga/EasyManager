@@ -13,6 +13,8 @@ import {
 } from "recharts";
 import "./App.css";
 import empty from "./empty-box.png";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import axios from "axios";
 
 const Dashboard = () => {
@@ -22,12 +24,17 @@ const Dashboard = () => {
   const [salePresentYesterday, setSalePresentYesterday] = useState(true);
   const [salePresentLastWeek, setSalePresentLastWeek] = useState(true);
   const [salePresentLastMonth, setSalePresentLastMonth] = useState(true);
+  const [salePresentAnotherDay, setSalePresentAnotherDay] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState("today");
   const [selectedRevenue, setSelectedRevenue] = useState("today");
   const [selectedProfit, setSelectedProfit] = useState("today");
   const [selectedExpense, setSelectedExpense] = useState("today");
   const [showAnimation, setShowAnimation] = useState(false);
+  const [currentWeekMonth, setCurrentWeekMonth] = useState(new Date());
+  const [daySelected, setDaySelected] = useState(false);
+  const [weekData, setWeekData] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [day, setDay] = useState(new Date());
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -272,6 +279,7 @@ const Dashboard = () => {
       setSelectedRevenue("today");
       setSelectedProfit("today");
       setSelectedExpense("today");
+      setDaySelected(false);
     }, 1000);
   }
 
@@ -283,6 +291,7 @@ const Dashboard = () => {
       setSelectedRevenue("yesterday");
       setSelectedProfit("yesterday");
       setSelectedExpense("yesterday");
+      setDaySelected(false);
     }, 1000);
   }
 
@@ -294,6 +303,7 @@ const Dashboard = () => {
       setSelectedRevenue("lastWeek");
       setSelectedProfit("lastWeek");
       setSelectedExpense("lastWeek");
+      setDaySelected(false);
     }, 1000);
   }
 
@@ -305,6 +315,18 @@ const Dashboard = () => {
       setSelectedRevenue("lastMonth");
       setSelectedProfit("lastMonth");
       setSelectedExpense("lastMonth");
+      setDaySelected(false);
+    }, 1000);
+  }
+
+  function salesAnotherDay() {
+    setShowAnimation(true);
+    setTimeout(() => {
+      setShowAnimation(false);
+      setSelectedPeriod("anotherDay");
+      setSelectedRevenue("anotherDay");
+      setSelectedProfit("anotherDay");
+      setSelectedExpense("anotherDay");
     }, 1000);
   }
 
@@ -337,13 +359,7 @@ const Dashboard = () => {
     }
   }
 
-  const [currentWeekMonth, setCurrentWeekMonth] = useState(new Date());
-  const [weekData, setWeekData] = useState([]);
-  const totalAmount = {};
-  const totalProfits = {};
-  const totalExpense = {};
   const weeksData = {};
-  let updatedWeekData = [];
 
   const weekGraph = () => {
     let newDate = new Date();
@@ -370,6 +386,8 @@ const Dashboard = () => {
         .toString()
         .padStart(2, "0")}`;
 
+      console.log(formattedDate);
+      console.log(currentWeekMonth);
       const dayOfMonth = dayStartDate.getDate();
       const suffix = getSuffix(dayOfMonth); // Function to get the suffix (st, nd, rd, or th)
       const weekday = dayStartDate.toLocaleString("en-UK", { weekday: "long" });
@@ -429,6 +447,77 @@ const Dashboard = () => {
     weekGraph();
   }, [weekData]);
 
+  const handleDateChange = (date) => {
+    setShowAnimation(true);
+    setTimeout(() => {
+      setShowAnimation(false); // Set showAnimation to false after the animation duration
+      setDay(date);
+      console.log(daySelected);
+      setDaySelected(true);
+      salesAnotherDay();
+    }, 1000);
+  };
+
+  const dayChose = format(day, "EEEE, dd-MM-yyyy");
+
+  const groupedExpensesByDate = expenses.reduce((acc, expense) => {
+    const expenseDate = new Date(expense.date);
+    const expenseDay = format(expenseDate, "EEEE, dd-MM-yyyy");
+    acc[expenseDay] = acc[expenseDay] || [];
+    acc[expenseDay].push(expense);
+    return acc;
+  }, {});
+
+  const groupedSalesByDate = sales.reduce((acc, sale) => {
+    const saleDate = new Date(sale.datesold);
+    const saleDay = format(saleDate, "EEEE, dd-MM-yyyy");
+    acc[saleDay] = acc[saleDay] || [];
+    acc[saleDay].push(sale);
+    return acc;
+  }, {});
+
+  useEffect(() => {
+    setSalePresentAnotherDay(groupedSalesByDate.length > 0);
+  }, [groupedSalesByDate]);
+
+  const totalExpenseByDate = Object.keys(groupedExpensesByDate).reduce(
+    (acc, date) => {
+      const totalForDate = groupedExpensesByDate[date].reduce(
+        (cost, expense) => cost + expense.cost,
+        0
+      );
+      acc[date] = totalForDate.toLocaleString();
+      return acc;
+    },
+    {}
+  );
+
+  const revenueByDay = groupedSalesByDate[dayChose]
+    ? groupedSalesByDate[dayChose]
+        .reduce((acc, sale) => acc + sale.total, 0)
+        .toLocaleString()
+    : 0;
+
+  const commish = groupedSalesByDate[dayChose]
+    ? groupedSalesByDate[dayChose]
+        .reduce((acc, sale) => acc + sale.commission, 0)
+        .toLocaleString()
+    : 0;
+
+  const totExpenses = (
+    (totalExpenseByDate[dayChose]
+      ? parseFloat(totalExpenseByDate[dayChose].replace(/,/g, ""))
+      : 0) + (commish ? parseFloat(commish.replace(/,/g, "")) : 0)
+  ).toLocaleString();
+
+  const totRevenue = revenueByDay
+    ? parseFloat(revenueByDay.replace(/,/g, ""))
+    : 0;
+
+  const netProfitByDay = (
+    totRevenue - (totExpenses ? parseFloat(totExpenses.replace(/,/g, "")) : 0)
+  ).toLocaleString();
+
   return (
     <div>
       <div id="main">
@@ -450,6 +539,24 @@ const Dashboard = () => {
             Welcome Admin <i class="material-icons">spa</i>
           </h1>
         </div>
+
+        <div>
+          <label>Select date:</label>
+          <DatePicker
+            className="customDatePicker"
+            type="date"
+            selected={day}
+            onChange={handleDateChange}
+            dateFormat="EEEE, dd-MM-yyyy"
+          />
+
+          {daySelected && (
+            <div>
+              <h3>{format(new Date(day), "EEEE, dd MMMM yyyy")}</h3>
+            </div>
+          )}
+        </div>
+        <br />
 
         <div style={{ display: "flex" }}>
           <div className="tooltipp">
@@ -510,6 +617,9 @@ const Dashboard = () => {
             <span className="tooltipptext">{formattedDate2}</span>
           </div>
         </div>
+        <br />
+
+        <br />
 
         <div className="container1">
           <div className="revenue">
@@ -535,6 +645,9 @@ const Dashboard = () => {
               )}
               {selectedRevenue === "lastMonth" && (
                 <React.Fragment>{monthlyRevenue}</React.Fragment>
+              )}
+              {selectedRevenue === "anotherDay" && (
+                <React.Fragment>{revenueByDay}</React.Fragment>
               )}
             </p>
           </div>
@@ -563,6 +676,9 @@ const Dashboard = () => {
               {selectedExpense === "lastMonth" && (
                 <React.Fragment>{monthlyExpense}</React.Fragment>
               )}
+              {selectedExpense === "anotherDay" && (
+                <React.Fragment>{totExpenses}</React.Fragment>
+              )}
             </p>
           </div>
 
@@ -589,6 +705,9 @@ const Dashboard = () => {
               )}
               {selectedProfit === "lastMonth" && (
                 <React.Fragment>{monthlyNetProfit}</React.Fragment>
+              )}
+              {selectedProfit === "anotherDay" && (
+                <React.Fragment>{netProfitByDay}</React.Fragment>
               )}
             </p>
           </div>
@@ -1028,6 +1147,165 @@ const Dashboard = () => {
                           </tr>
                         </React.Fragment>
                       ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div style={{ textAlign: "center", paddingTop: "5px" }}>
+                    <h2 style={{ fontWeight: "bold" }}>No sale made...</h2>
+                    <img src={empty} alt="Graph" style={boxStyle} />
+                  </div>
+                )}
+              </React.Fragment>
+            )}
+
+            {selectedPeriod === "anotherDay" && (
+              <React.Fragment>
+                <h1 style={{ textAlign: "center" }}>Sales on:</h1>
+                <h2 style={{ textAlign: "center", backgroundColor: "#B1BDB9" }}>
+                  {dayChose}
+                </h2>
+                {salePresentAnotherDay === true ? (
+                  <table className="dashtable">
+                    <thead>
+                      <tr>
+                        <th
+                          style={{
+                            padding: "7px",
+                            backgroundColor: "#127a8c",
+                            color: "white",
+                          }}
+                        >
+                          Image
+                        </th>
+                        <th
+                          style={{
+                            padding: "7px",
+                            backgroundColor: "#127a8c",
+                            color: "white",
+                          }}
+                        >
+                          Description
+                        </th>
+                        <th
+                          style={{
+                            padding: "7px",
+                            backgroundColor: "#127a8c",
+                            color: "white",
+                          }}
+                        >
+                          Price
+                        </th>
+                        <th
+                          style={{
+                            padding: "7px",
+                            backgroundColor: "#127a8c",
+                            color: "white",
+                          }}
+                        >
+                          Qty.
+                        </th>
+                        <th
+                          style={{
+                            padding: "7px",
+                            backgroundColor: "#127a8c",
+                            color: "white",
+                          }}
+                        >
+                          Total
+                        </th>
+                        <th
+                          style={{
+                            padding: "7px",
+                            backgroundColor: "#127a8c",
+                            color: "white",
+                          }}
+                        >
+                          Sold by
+                        </th>
+                        <th
+                          style={{
+                            padding: "7px",
+                            backgroundColor: "#127a8c",
+                            color: "white",
+                          }}
+                        >
+                          Date Sold
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groupedSalesByDate[dayChose] &&
+                        groupedSalesByDate[dayChose].map((sale) => (
+                          <React.Fragment key={sale.number}>
+                            <tr>
+                              <td>
+                                <img
+                                  src={`http://localhost:8800/saleuploads/${sale.image}`}
+                                  alt={sale.image}
+                                  style={styles}
+                                />
+                              </td>
+                              <td
+                                style={{
+                                  padding: "10px",
+                                  backgroundColor: "#AFCECE",
+                                  color: "black",
+                                  fontWeight: "bold",
+                                }}
+                              >
+                                {sale.description}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "7px",
+                                  backgroundColor: "#AFCECE",
+                                }}
+                              >
+                                Ksh.{sale.price.toLocaleString()}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "7px",
+                                  backgroundColor: "#AFCECE",
+                                  textAlign: "center",
+                                  fontWeight: "bold",
+                                }}
+                              >
+                                {sale.quantity}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "7px",
+                                  backgroundColor: "#AFCECE",
+                                  color: "green",
+                                  fontWeight: "bold",
+                                }}
+                              >
+                                Ksh.{sale.total.toLocaleString()}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "7px",
+                                  backgroundColor: "#AFCECE",
+                                }}
+                              >
+                                {sale.saleperson}
+                              </td>
+
+                              <td
+                                style={{
+                                  padding: "7px",
+                                  backgroundColor: "#AFCECE",
+                                }}
+                              >
+                                {format(
+                                  new Date(sale.datesold),
+                                  "EEEE, dd/MM/yyyy"
+                                )}
+                              </td>
+                            </tr>
+                          </React.Fragment>
+                        ))}
                     </tbody>
                   </table>
                 ) : (
