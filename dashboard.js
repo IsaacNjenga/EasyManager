@@ -386,8 +386,6 @@ const Dashboard = () => {
         .toString()
         .padStart(2, "0")}`;
 
-      console.log(formattedDate);
-      console.log(currentWeekMonth);
       const dayOfMonth = dayStartDate.getDate();
       const suffix = getSuffix(dayOfMonth); // Function to get the suffix (st, nd, rd, or th)
       const weekday = dayStartDate.toLocaleString("en-UK", { weekday: "long" });
@@ -476,9 +474,9 @@ const Dashboard = () => {
     return acc;
   }, {});
 
-  useEffect(() => {
+  /*useEffect(() => {
     setSalePresentAnotherDay(groupedSalesByDate.length > 0);
-  }, [groupedSalesByDate]);
+  }, [groupedSalesByDate]);*/
 
   const totalExpenseByDate = Object.keys(groupedExpensesByDate).reduce(
     (acc, date) => {
