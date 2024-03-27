@@ -184,8 +184,8 @@ const Reports = () => {
 
     for (let i = 1; i <= 31; i++) {
       const dayStartDate = new Date(currentDate);
-      const dayEndDate = new Date(dayStartDate); // Set dayEndDate to dayStartDate
-      dayEndDate.setHours(23, 59, 59, 999); // Set time to 23:59:59.999
+      const dayEndDate = new Date(dayStartDate);
+      dayEndDate.setHours(23, 59, 59, 999);
 
       const dailySales = sales.filter((sale) => {
         const saleDate = new Date(sale.datesold);
@@ -231,7 +231,31 @@ const Reports = () => {
 
       currentDate.setDate(currentDate.getDate() + 1); // Move to the next day
     }
-    for (let i = 1; i <= 31; i++) {
+
+    const currentMonth = currentDate.getMonth();
+    let days;
+    if (
+      currentMonth === 9 ||
+      currentMonth === 4 ||
+      currentMonth === 6 ||
+      currentMonth === 11
+    ) {
+      days = 30;
+    } else if (currentMonth === 2) {
+      const currentYear = currentDate.getFullYear();
+      if (
+        (currentYear % 4 === 0 && currentYear % 100 !== 0) ||
+        currentYear % 400 === 0
+      ) {
+        days = 29;
+      } else {
+        days = 28;
+      }
+    } else {
+      days = 31;
+    }
+
+    for (let i = 1; i <= days; i++) {
       let daySuffix;
       if (i === 1 || i === 21 || i === 31) {
         daySuffix = `${i}st`;
@@ -242,6 +266,7 @@ const Reports = () => {
       } else {
         daySuffix = `${i}th`;
       }
+
       updatedDayData.push({
         name: daySuffix,
         Revenue: totalDayAmount[`day ${i}`],
